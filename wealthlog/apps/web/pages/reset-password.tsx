@@ -1,4 +1,4 @@
-//  apps/web/pages/reset-password.tsx
+//  apps/web/pages/reset-password.tsx true
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { api } from '@wealthlog/common';

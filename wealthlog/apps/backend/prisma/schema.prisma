@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -78,6 +77,84 @@ enum LoanType {
 enum RecurringEntryType {
   INCOME
   EXPENSE
+}
+
+// Nouveaux Enums pour la partie Real Estate
+enum PropertyType {
+  APARTMENT
+  HOUSE
+  TOWNHOUSE
+  CONDO
+  DUPLEX
+  COMMERCIAL
+  LAND
+  OTHER
+}
+
+enum PropertyUsage {
+  PRIMARY_RESIDENCE
+  RENTAL
+  AIRBNB
+  MIXED_USE
+  COMMERCIAL
+  INVESTMENT
+}
+
+enum PropertyCategory {
+  RESIDENTIAL
+  COMMERCIAL
+  INDUSTRIAL
+  LAND
+  MULTI_FAMILY
+}
+
+enum MaintenancePriority {
+  LOW
+  MEDIUM
+  HIGH
+  EMERGENCY
+}
+
+enum MaintenanceStatus {
+  PENDING
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum RentPaymentStatus {
+  DUE
+  PAID
+  LATE
+  PARTIALLY_PAID
+}
+
+enum RenovationStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum MaintenanceFrequency {
+  MONTHLY
+  QUARTERLY
+  BIANNUAL
+  ANNUAL
+}
+
+enum DocumentType {
+  DEED
+  MORTGAGE
+  INSURANCE
+  LEASE
+  INSPECTION
+  APPRAISAL
+  TAX
+  PERMIT
+  REPAIR
+  OTHER
 }
 
 /// =====================================================================
@@ -371,51 +448,257 @@ model BalanceHistory {
   @@index([accountId, date], name: "idx_balanceHistory_account_date")
 }
 
+// REAL ESTATE MODELS - VERSION AMÉLIORÉE
 model RealEstateInvestment {
   id               Int              @id @default(autoincrement())
   accountId        Int
   account          FinancialAccount @relation(fields: [accountId], references: [id])
   propertyAddress  String
-  propertyType     String
-  usage            String
-  category         String
+  propertyType     PropertyType
+  usage            PropertyUsage
+  category         PropertyCategory
   purchaseDate     DateTime
   purchasePrice    Float
   currentValuation Float            @default(0)
+  squareFootage    Int?
+  yearBuilt        Int?
+  numberOfBedrooms Int?
+  numberOfBathrooms Float?
   createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
-  valuations       RealEstateValuation[]
-  mortgage         Mortgage?
-  realEstateLabels RealEstateInvestmentLabel[]
+  // Relations
+  valuations          RealEstateValuation[]
+  mortgage            Mortgage?
+  expenses            Expense[]
+  projectedEntries    ProjectedEntry[]
+  loans               Loan[]
+  realEstateLabels    RealEstateInvestmentLabel[]
+  documents           RealEstateDocument[]
+  tenants             Tenant[]
+  insurancePolicies   RealEstateInsurance[]
+  financialProjections RealEstateFinancialProjection[]
+  renovations         Renovation[]
+  maintenanceSchedules MaintenanceSchedule[]
 
-  expenses         Expense[]
-  projectedEntries ProjectedEntry[]
-  loans            Loan[]
+  @@index([accountId])
+  @@index([propertyType])
+  @@index([usage])
+  @@index([purchaseDate])
 }
 
 model RealEstateValuation {
   id                     Int                  @id @default(autoincrement())
   realEstateInvestmentId Int
-  realEstateInvestment   RealEstateInvestment @relation(fields: [realEstateInvestmentId], references: [id])
+  realEstateInvestment   RealEstateInvestment @relation(fields: [realEstateInvestmentId], references: [id], onDelete: Cascade)
   valuationDate          DateTime             @default(now())
   valuationAmount        Float
+  valuationMethod        String?
+  notes                  String?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+
+  @@index([realEstateInvestmentId, valuationDate])
 }
 
 model Mortgage {
   id                     Int                  @id @default(autoincrement())
   realEstateInvestmentId Int                  @unique
-  realEstateInvestment   RealEstateInvestment @relation(fields: [realEstateInvestmentId], references: [id])
-
-  mortgageAmount Float
-  interestRate   Float
-  termInYears    Int
-  startDate      DateTime
-  monthlyPayment Float
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @default(now())
+  realEstateInvestment   RealEstateInvestment @relation(fields: [realEstateInvestmentId], references: [id], onDelete: Cascade)
+  mortgageAmount        Float
+  interestRate          Float
+  termInYears           Int
+  startDate             DateTime
+  monthlyPayment        Float
+  lender                String?
+  loanNumber            String?
+  notes                 String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
 
   recurringEntries RecurringEntry[]
+}
+
+
+model RealEstateDocument {
+  id                    Int                  @id @default(autoincrement())
+  name                  String
+  documentType          DocumentType
+  description           String?
+  fileContent           Bytes                // Pour stocker le contenu binaire
+  fileType              String
+  fileSize              Int
+  uploadedDate          DateTime             @default(now())
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  realEstateInvestmentId Int
+  realEstateInvestment   RealEstateInvestment @relation(fields: [realEstateInvestmentId], references: [id], onDelete: Cascade)
+  tenantId               Int?
+  tenant                 Tenant?              @relation(fields: [tenantId], references: [id])
+
+  @@index([realEstateInvestmentId])
+}
+
+model Tenant {
+  id                    Int                  @id @default(autoincrement())
+  name                  String
+  email                 String?
+  phone                 String?
+  secondaryContact      String?
+  leaseStartDate        DateTime
+  leaseEndDate          DateTime?
+  initialLeaseTermMonths Int?
+  monthlyRent           Float
+  securityDeposit       Float?
+  occupants             Int?
+  active                Boolean              @default(true)
+  notes                 String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  // Relations
+  realEstateInvestmentId Int
+  realEstateInvestment   RealEstateInvestment @relation(fields: [realEstateInvestmentId], references: [id], onDelete: Cascade)
+  rentPayments           RentPayment[]
+  maintenanceRequests    MaintenanceRequest[]
+  documents              RealEstateDocument[]
+
+  @@index([realEstateInvestmentId])
+  @@index([active])
+}
+
+model RentPayment {
+  id            Int               @id @default(autoincrement())
+  amount        Float
+  dueDate       DateTime
+  paidDate      DateTime?
+  status        RentPaymentStatus @default(DUE)
+  paymentMethod String?
+  notes         String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  // Relations
+  tenantId      Int
+  tenant        Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, dueDate])
+  @@index([status])
+}
+
+model MaintenanceRequest {
+  id                Int                @id @default(autoincrement())
+  title             String
+  description       String
+  priority          MaintenancePriority
+  status            MaintenanceStatus  @default(PENDING)
+  requestDate       DateTime           @default(now())
+  scheduledDate     DateTime?
+  resolvedDate      DateTime?
+  estimatedCost     Float?
+  actualCost        Float?
+  assignedTo        String?
+  notes             String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  // Relations
+  tenantId          Int
+  tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([priority])
+}
+
+model RealEstateInsurance {
+  id                    Int                  @id @default(autoincrement())
+  policyNumber          String
+  insuranceProvider     String
+  coverageType          String
+  coverageAmount        Float
+  premium               Float
+  startDate             DateTime
+  endDate               DateTime
+  deductible            Float?
+  notes                 String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  // Relations
+  realEstateInvestmentId Int
+  realEstateInvestment   RealEstateInvestment @relation(fields: [realEstateInvestmentId], references: [id], onDelete: Cascade)
+
+  @@index([realEstateInvestmentId])
+  @@index([endDate])
+}
+
+model RealEstateFinancialProjection {
+  id                    Int                  @id @default(autoincrement())
+  projectionYear        Int
+  expectedRentalIncome  Float?
+  expectedExpenses      Float?
+  expectedAppreciation  Float?
+  expectedCashFlow      Float?
+  roi                   Float?
+  maintenanceReserve    Float?
+  vacancyRate           Float?
+  propertyTaxes         Float?
+  insuranceCosts        Float?
+  managementFees        Float?
+  utilities             Float?
+  notes                 String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  // Relations
+  realEstateInvestmentId Int
+  realEstateInvestment   RealEstateInvestment @relation(fields: [realEstateInvestmentId], references: [id], onDelete: Cascade)
+
+  @@index([realEstateInvestmentId, projectionYear])
+}
+
+model Renovation {
+  id                    Int                @id @default(autoincrement())
+  description           String
+  startDate             DateTime?
+  completionDate        DateTime?
+  budget                Float?
+  actualCost            Float?
+  contractor            String?
+  status                RenovationStatus   @default(PLANNED)
+  notes                 String?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  // Relations
+  realEstateInvestmentId Int
+  realEstateInvestment   RealEstateInvestment @relation(fields: [realEstateInvestmentId], references: [id], onDelete: Cascade)
+
+  @@index([realEstateInvestmentId])
+  @@index([status])
+}
+
+model MaintenanceSchedule {
+  id                    Int                   @id @default(autoincrement())
+  maintenanceType       String
+  description           String
+  frequency             MaintenanceFrequency
+  lastCompletedDate     DateTime?
+  nextDueDate           DateTime
+  estimatedCost         Float?
+  recurrent             Boolean               @default(true)
+  notes                 String?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  realEstateInvestmentId Int
+  realEstateInvestment   RealEstateInvestment @relation(fields: [realEstateInvestmentId], references: [id], onDelete: Cascade)
+
+  @@index([realEstateInvestmentId])
+  @@index([nextDueDate])
+  @@index([frequency])
 }
 
 model RecurringEntry {
@@ -605,6 +888,9 @@ model Expense {
   expenseLabels          ExpenseLabel[]
 
   @@index([date])
+  @@index([userId])
+  @@index([realEstateInvestmentId])
+  @@index([expenseCategoryId])
 }
 
 model ProjectedEntry {
@@ -621,6 +907,8 @@ model ProjectedEntry {
   realEstateInvestment   RealEstateInvestment? @relation(fields: [realEstateInvestmentId], references: [id])
 
   @@index([projectedDate])
+  @@index([userId])
+  @@index([realEstateInvestmentId])
 }
 
 model Loan {
@@ -645,6 +933,9 @@ model Loan {
   updatedAt DateTime @default(now())
 
   repayments LoanRepayment[]
+
+  @@index([userId])
+  @@index([realEstateInvestmentId])
 }
 
 model LoanRepayment {
@@ -658,6 +949,9 @@ model LoanRepayment {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
+
+  @@index([loanId])
+  @@index([paymentDate])
 }
 
 model TradeLabel {
