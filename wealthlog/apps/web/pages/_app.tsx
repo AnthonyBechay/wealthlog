@@ -1,3 +1,5 @@
+// apps/web/pages/_app.tsx 
+
 import '../styles/globals.css';
 import '../styles/theme.css';
 
@@ -26,8 +28,7 @@ interface NavigationItem {
   isActive?: boolean;
 }
 
-// Constants
-
+// Constants - NAVIGATION MISE À JOUR
 const NAVIGATION_ITEMS: NavigationItem[] = [
   { href: '/landing/landing', label: 'Dashboard', icon: '🏠' },
   { href: '/accounts', label: 'Accounts', icon: '💼' },
@@ -36,8 +37,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
   { href: '/comingSoon', label: 'Expenses', icon: '💳' },
   { href: '/comingSoon', label: 'Loans', icon: '💰' },
   { href: '/comingSoon', label: 'Forecasting', icon: '📊' },
-  { href: '/settings/settingsGeneral', label: 'General Settings', icon: '⚙️' },
-  { href: '/settings/settingsTrading', label: 'Trading Settings', icon: '🛠️' },
+  { href: '/settings', label: 'Settings', icon: '⚙️' }, // ✅ Unifié en une seule page
 ];
 
 // Utilities
@@ -59,7 +59,9 @@ interface NavigationLinkProps {
 
 const NavigationLink = ({ item, isCollapsed = false, onNavigate }: NavigationLinkProps) => {
   const router = useRouter();
-  const isActive = router.pathname === item.href;
+  // ✅ Amélioration: inclure les sous-routes de settings
+  const isActive = router.pathname === item.href || 
+    (item.href === '/settings' && router.pathname.startsWith('/settings'));
 
   return (
     <Link href={item.href} legacyBehavior>
@@ -119,11 +121,11 @@ function MyApp({ Component, pageProps }: AppProps) {
     }
   }, [themeMode]);
 
-  // Fetch user settings
+  // Fetch user settings - ✅ ENDPOINT CORRIGÉ
   useEffect(() => {
     const fetchUserSettings = async () => {
       try {
-        const { data } = await api.get('/settings');
+        const { data } = await api.get('/generalSettings'); // ✅ Changé de '/settings' à '/generalSettings'
         if (data?.displayMode) {
           setThemeMode(data.displayMode as ThemeMode);
         }
@@ -132,8 +134,11 @@ function MyApp({ Component, pageProps }: AppProps) {
       }
     };
 
-    fetchUserSettings();
-  }, []);
+    // ✅ Seulement fetch si l'utilisateur est authentifié
+    if (isAuthenticated) {
+      fetchUserSettings();
+    }
+  }, [isAuthenticated]);
 
   // Authentication check
   useEffect(() => {
