@@ -770,3 +770,50 @@ model StatusHistory {
 
   @@map("status_history")
 }
+
+
+
+
+// =============================================
+//              SYSTEM CONSTANTS TABLES  
+// =============================================
+
+model SystemTimezone {
+  id          Int      @id @default(autoincrement())
+  value       String   @unique // Ex: "America/New_York"
+  label       String   // Ex: "New York"
+  offset      String   // Ex: "-05:00"
+  region      String?  // Ex: "America"
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
+model SystemCurrency {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique // Ex: "USD"
+  name        String   // Ex: "US Dollar"
+  symbol      String   // Ex: "$"
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
+model SystemLanguage {
+  id          Int      @id @default(autoincrement())
+  value       String   @unique // Ex: "en"
+  label       String   // Ex: "English"
+  nativeName  String   // Ex: "English"
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+}
